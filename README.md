@@ -62,10 +62,7 @@ Raw reports and trend history are in `evidence/`. The five findings fixed were t
 
 ![Before](evidence/before.webp)
 
-**Middle (90.0%)**
-![Middle](evidence/middle.webp)
-
-**Dashboard (90.0%)**
+**Dashboard**
 ![Dashboard](evidence/dashboard.webp)
 
 **After (100%)**
