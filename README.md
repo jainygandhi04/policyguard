@@ -57,3 +57,17 @@ Compliance: 55.6%  (pass=5, fail=4, skipped=2)
 | After enabling the firewall service | 100% | 11 | 0 |
 
 Raw reports and trend history are in `evidence/`. The five findings fixed were the host firewall, SSH root login, SSH password authentication, password aging and automatic updates.
+
+**Before (54.5%)**
+
+![Before](evidence/before.webp)
+
+**Middle (90.0%)**
+![Middle](evidence/middle.webp)
+
+**Dashboard (90.0%)**
+![Dashboard](evidence/dashboard.webp)
+
+**After (100%)**
+
+![After](evidence/after.webp)
