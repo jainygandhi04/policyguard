@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GRID Explorer: Policy to Control to Telemetry</title>
+<style>
+:root{--bg:#f6f7fb;--fg:#1b1f2a;--muted:#5d6577;--card:#fff;--line:#dfe3ee;--accent:#3b5bdb;--pass:#2b8a3e;--fail:#c92a2a;--skip:#868e96;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141a;--fg:#e8eaf0;--muted:#9aa3b5;--card:#1b1e27;--line:#2c3140;--accent:#7c93ff;--pass:#51cf66;--fail:#ff6b6b;--skip:#a0a7b4}}
+:root[data-theme="dark"]{--bg:#12141a;--fg:#e8eaf0;--muted:#9aa3b5;--card:#1b1e27;--line:#2c3140;--accent:#7c93ff;--pass:#51cf66;--fail:#ff6b6b;--skip:#a0a7b4}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:18px 16px 40px}
+h1{font-size:1.4rem;margin:0 0 2px}h2{font-size:1.1rem;margin:20px 0 8px}
+.sub{color:var(--muted);margin:0 0 14px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+nav button,.seg button,.btn{border:1px solid var(--line);background:var(--card);color:var(--fg);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+nav button.on,.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.step{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;font:inherit}
+.step.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.78rem;background:var(--line);color:var(--fg)}
+.two{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.two{grid-template-columns:300px minmax(0,1fr)}}
+.list button{display:block;width:100%;text-align:left;margin-bottom:6px;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:9px 12px;border-radius:8px;cursor:pointer;font:inherit}
+.list button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+dl{margin:0}dt{font-weight:600;margin-top:10px;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}dd{margin:2px 0 0}
+code{background:var(--line);padding:1px 6px;border-radius:5px;font-size:.88em}
+.row{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.row:last-child{border:0}
+.seg{display:inline-flex}.seg button{padding:4px 10px;border-radius:0;font-size:.85rem}.seg button:first-child{border-radius:7px 0 0 7px}.seg button:last-child{border-radius:0 7px 7px 0}
+.pass{color:var(--pass)}.fail{color:var(--fail)}.skip{color:var(--skip)}
+.dash{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.dash{grid-template-columns:240px minmax(0,1fr)}}
+.gauge{text-align:center}.gauge .big{font-size:2rem;font-weight:700}
+textarea{width:100%;min-height:90px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px ui-monospace,monospace}
+.note{color:var(--muted);font-size:.88rem}
+.quiz label{display:block;margin:4px 0;cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+<h1>GRID Explorer</h1>
+<p class="sub">Governance &amp; Risk, explained by doing. Policy, then framework control, then automated check, then a measurable number.</p>
+<nav id="tabs"></nav>
+<div id="view"></div>
+</main>
+<script>
+const REQ=[
+{id:"ACC-01",st:"Direct root login over SSH MUST be disabled.",cis:"5.4 Restrict Administrator Privileges to Dedicated Administrator Accounts",chk:"Read sshd config, expect PermitRootLogin no",met:"% of hosts compliant",why:"If attackers guess the root password they own the machine. Forcing admins to log in as themselves, then elevate, leaves an audit trail and limits blast radius."},
+{id:"ACC-02",st:"Only the root account MAY have UID 0.",cis:"5.4 Restrict Administrator Privileges",chk:"Parse /etc/passwd for accounts with UID 0",met:"Count of extra UID 0 accounts (target 0)",why:"A hidden second UID 0 account is a classic backdoor. It has full power but isn't named root."},
+{id:"ACC-03",st:"Passwords MUST expire within 90 days.",cis:"5.2 Use Unique Passwords",chk:"Read PASS_MAX_DAYS in /etc/login.defs, expect 90 or less",met:"% of hosts compliant",why:"Limits how long a stolen password stays useful. (Many modern standards also rely on MFA, so treat this as one layer.)"},
+{id:"ACC-04",st:"Accounts MUST NOT have an empty password.",cis:"5.2 Use Unique Passwords",chk:"Parse /etc/shadow for empty hash fields (needs root)",met:"Count of empty-password accounts (target 0)",why:"An account with no password is an open door that needs no guessing at all."},
+{id:"CFG-01",st:"SSH password authentication MUST be disabled; keys only.",cis:"4.1 Establish and Maintain a Secure Configuration Process",chk:"Expect PasswordAuthentication no",met:"% of hosts compliant",why:"Removes brute-force and credential-stuffing attacks against SSH, since keys can't be guessed like passwords."},
+{id:"FIL-01",st:"/etc/passwd MUST NOT be writable by group or others.",cis:"3.3 Configure Data Access Control Lists",chk:"File mode check, no write bits for group or other",met:"% of hosts compliant",why:"If anyone can edit the account list, they can create admin users."},
+{id:"FIL-02",st:"/etc/shadow MUST NOT be accessible by others or writable by group.",cis:"3.3 Configure Data Access Control Lists",chk:"File mode check on /etc/shadow",met:"% of hosts compliant",why:"This file holds password hashes. Readable hashes can be cracked offline."},
+{id:"NET-01",st:"A host-based firewall MUST be active.",cis:"4.4 Implement and Manage a Firewall on Servers",chk:"Check ufw / firewalld / nftables service status",met:"% of hosts with firewall active",why:"Controls which network traffic can reach the machine, so a mistake elsewhere doesn't expose every service."},
+{id:"NET-02",st:"Telnet MUST NOT be running.",cis:"4.8 Uninstall or Disable Unnecessary Services",chk:"Check telnet service status",met:"Count of hosts running telnet (target 0)",why:"Telnet sends everything, including passwords, in plain text. SSH replaced it long ago."},
+{id:"LOG-01",st:"An audit or system logging service MUST be active.",cis:"8.2 Collect Audit Logs",chk:"Check auditd / rsyslog status",met:"% of hosts with logging active",why:"Without logs you can't detect or investigate an incident, and auditors can't verify anything."},
+{id:"PAT-01",st:"Automatic security updates MUST be enabled.",cis:"7.3 Perform Automated Operating System Patch Management",chk:"Check unattended-upgrades / dnf-automatic enabled",met:"% of hosts with auto-updates enabled",why:"Most breaches use known, already-patched vulnerabilities. Automation closes the gap."}];
+const STEPS=[
+["1. Draft","Someone requests a new policy or a change (a new threat, a new law, an audit finding). A GRC analyst drafts or updates the text."],
+["2. Review","Security, engineering and cloud ops comment. Your skill here is turning feedback into clear, enforceable wording, not just collecting comments."],
+["3. Approve","Executives or a governance board sign off. Approval and version are recorded so it is auditable later."],
+["4. Publish","The policy goes into the central policy inventory with an owner, version and next review date."],
+["5. Enforce","Policy statements become technical controls: configuration baselines, automated checks, guardrails. This is the 'policy to control' step in the job description."],
+["6. Measure","Telemetry reports whether each control actually works (e.g. 94% of hosts compliant). This is continuous compliance."],
+["7. Improve","Failures, incidents and new frameworks feed back into step 1. The cycle never stops."]];
+const TERMS=[
+["Policy","What must be true, and why. High-level and management-approved. e.g. 'Systems must be protected from unauthorised access.'"],
+["Standard","Specific, mandatory requirements that implement a policy. e.g. 'Root SSH login must be disabled.'"],
+["Procedure","Step-by-step how-to for people. e.g. how an admin disables it."],
+["Control","A safeguard that enforces or checks a requirement. Technical (a firewall) or organisational (quarterly access review)."],
+["Framework","A catalogue of controls (NIST SP 800-53, ISO 27001, CIS Controls). You map your policies to it so you can prove coverage."],
+["Telemetry","Automatic measurement data that shows if a control works right now, not just on paper."],
+["Continuous compliance","Checking controls constantly via automation instead of once a year before an audit."],
+["Risk","Likelihood times impact. Governance decides which risks to fix first."]];
+const QUIZ=[
+["'Root SSH login must be disabled' is best described as a...",["Policy","Standard","Procedure"],1,"It is a specific, mandatory requirement, so it is a standard."],
+["'94% of hosts have the firewall active' is an example of...",["A control","Telemetry","A procedure"],1,"It is a measurement of whether a control works, i.e. telemetry."],
+["Why map your standards to CIS or NIST?",["To look official","To prove coverage and speak the auditors' language","To make documents longer"],1,"Mapping lets you show which framework requirements each internal rule satisfies."]];
+
+let tab="learn",step=0,sel=0,state={};
+REQ.forEach(r=>state[r.id]="PASS");["ACC-03","NET-01","PAT-01"].forEach(i=>state[i]="FAIL");
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function tabs(){
+  const T=[["learn","1. Learn the role"],["explore","2. Policy to control"],["dash","3. Compliance dashboard"]];
+  $("#tabs").innerHTML=T.map(([k,l])=>`<button class="${tab===k?"on":""}" data-t="${k}">${l}</button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+}
+function learn(){
+  let h=`<div class="card"><b>What does a GRID-style team actually do?</b><p>Companies write security rules (policies). GRID makes sure those rules are clear, approved, mapped to recognised frameworks, and then <b>actually enforced and measured</b> by engineering systems. You sit between the rule-writers and the engineers.</p></div>
+  <h2>The policy lifecycle (click a step)</h2><div class="steps">${STEPS.map((s,i)=>`<button class="step ${i===step?"on":""}" data-s="${i}">${s[0]}</button>`).join("")}</div>
+  <div class="card">${esc(STEPS[step][1])}</div>
+  <h2>Words you will hear in interviews</h2><div class="grid">${TERMS.map(t=>`<div class="card"><b>${t[0]}</b><div class="note">${esc(t[1])}</div></div>`).join("")}</div>
+  <h2>Quick check</h2><div class="card quiz" id="quiz">${QUIZ.map((q,i)=>`<p><b>${esc(q[0])}</b></p>${q[1].map((o,j)=>`<label><input type="radio" name="q${i}" data-q="${i}" data-o="${j}"> ${esc(o)}</label>`).join("")}<div class="note" id="fb${i}"></div>`).join("")}</div>`;
+  $("#view").innerHTML=h;
+  document.querySelectorAll(".step").forEach(b=>b.onclick=()=>{step=+b.dataset.s;learn()});
+  document.querySelectorAll("#quiz input").forEach(i=>i.onchange=()=>{const q=+i.dataset.q,ok=+i.dataset.o===QUIZ[q][2];$("#fb"+q).innerHTML=(ok?"<span class='pass'>Correct. </span>":"<span class='fail'>Not quite. </span>")+esc(QUIZ[q][3])});
+}
+function explore(){
+  const r=REQ[sel];
+  $("#view").innerHTML=`<p class="note">Each row is one traceable chain: <b>policy statement, framework safeguard, automated check, metric</b>. This is exactly what the Python checker implements.</p>
+  <div class="two"><div class="list">${REQ.map((x,i)=>`<button class="${i===sel?"on":""}" data-i="${i}"><b>${x.id}</b> <span class="note">${esc(x.st.slice(0,44))}…</span></button>`).join("")}</div>
+  <div class="card"><h2 style="margin-top:0">${r.id}</h2><dl>
+  <dt>Policy statement</dt><dd>${esc(r.st)}</dd>
+  <dt>CIS Controls v8 safeguard</dt><dd><span class="tag">${esc(r.cis)}</span></dd>
+  <dt>Automated check</dt><dd><code>${esc(r.chk)}</code></dd>
+  <dt>Metric reported</dt><dd>${esc(r.met)}</dd>
+  <dt>Why it matters</dt><dd>${esc(r.why)}</dd></dl></div></div>`;
+  document.querySelectorAll(".list button").forEach(b=>b.onclick=()=>{sel=+b.dataset.i;explore()});
+}
+function calc(){const v=Object.values(state),p=v.filter(x=>x==="PASS").length,f=v.filter(x=>x==="FAIL").length,s=v.length-p-f;return{p,f,s,pct:p+f?Math.round(1000*p/(p+f))/10:0}}
+function dash(){
+  const c=calc(),col=c.pct>=90?"var(--pass)":c.pct>=80?"#e8a317":"var(--fail)";
+  const verdict=c.pct>=90?"Meets the 90% target.":c.pct>=80?"Acceptable, but below the 90% target.":"Below 80%: escalate to the system owner.";
+  const circ=2*Math.PI*52,off=circ*(1-c.pct/100);
+  const fails=REQ.filter(r=>state[r.id]==="FAIL");
+  $("#view").innerHTML=`<p class="note">Flip checks between PASS / FAIL / SKIP and watch the compliance score move. Formula: passed / (passed + failed). SKIP checks are excluded, but too many skips means low visibility.</p>
+  <div class="dash"><div class="card gauge"><svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="Compliance ${c.pct}%"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="10"/><circle cx="60" cy="60" r="52" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}" transform="rotate(-90 60 60)"/></svg>
+  <div class="big">${c.pct}%</div><div class="note">pass ${c.p} · fail ${c.f} · skip ${c.s}</div><p><b>${verdict}</b></p></div>
+  <div class="card">${REQ.map(r=>`<div class="row"><span><b>${r.id}</b> <span class="note">${esc(r.st)}</span></span><span class="seg">${["PASS","FAIL","SKIP"].map(s=>`<button class="${state[r.id]===s?"on":""}" data-r="${r.id}" data-s="${s}">${s}</button>`).join("")}</span></div>`).join("")}</div></div>
+  <h2>Fix next</h2><div class="card">${fails.length?fails.map(r=>`<p><b class="fail">${r.id}</b> (${esc(r.cis.split(" ")[0])}): ${esc(r.why)}</p>`).join(""):"<span class='pass'>No failing checks.</span>"}</div>
+  <h2>Load a real report</h2><div class="card"><p class="note">Run <code>python3 cis_checker.py --json report.json</code>, paste the file contents here, and the dashboard shows your own machine.</p><textarea id="imp" placeholder='{"results":[{"id":"ACC-01","status":"PASS"}, ...]}'></textarea><p><button class="btn" id="load">Load report</button> <span id="msg" class="note"></span></p></div>`;
+  document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{state[b.dataset.r]=b.dataset.s;dash()});
+  $("#load").onclick=()=>{try{const d=JSON.parse($("#imp").value);if(!Array.isArray(d.results))throw 0;let n=0;d.results.forEach(x=>{if(x.id in state&&["PASS","FAIL","SKIP"].includes(x.status)){state[x.id]=x.status;n++}});dash();$("#msg").textContent=`Loaded ${n} checks.`}catch(e){$("#msg").textContent="Could not read that. Paste the full JSON from the checker."}};
+}
+function render(){tabs();({learn,explore,dash})[tab]()}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+{
+  "host": "kali",
+  "timestamp": "2026-10-07T14:32:42+00:00",
+  "compliance_pct": 54.5,
+  "passed": 6,
+  "failed": 5,
+  "skipped": 0,
+  "results": [
+    {
+      "id": "ACC-01",
+      "requirement": "Direct root SSH login is disabled",
+      "cis_safeguard": "5.4",
+      "status": "FAIL",
+      "evidence": "PermitRootLogin=unset"
+    },
+    {
+      "id": "ACC-02",
+      "requirement": "Only one UID 0 (root) account exists",
+      "cis_safeguard": "5.4",
+      "status": "PASS",
+      "evidence": "UID 0 accounts: root"
+    },
+    {
+      "id": "ACC-03",
+      "requirement": "Passwords expire within 90 days",
+      "cis_safeguard": "5.2",
+      "status": "FAIL",
+      "evidence": "PASS_MAX_DAYS=99999"
+    },
+    {
+      "id": "ACC-04",
+      "requirement": "No accounts have an empty password",
+      "cis_safeguard": "5.2",
+      "status": "PASS",
+      "evidence": "accounts with empty password: none"
+    },
+    {
+      "id": "CFG-01",
+      "requirement": "SSH password authentication is disabled (keys only)",
+      "cis_safeguard": "4.1",
+      "status": "FAIL",
+      "evidence": "PasswordAuthentication=unset"
+    },
+    {
+      "id": "FIL-01",
+      "requirement": "/etc/passwd is not group/world writable",
+      "cis_safeguard": "3.3",
+      "status": "PASS",
+      "evidence": "/etc/passwd mode=0o644"
+    },
+    {
+      "id": "FIL-02",
+      "requirement": "/etc/shadow has no world access, no group write",
+      "cis_safeguard": "3.3",
+      "status": "PASS",
+      "evidence": "/etc/shadow mode=0o640"
+    },
+    {
+      "id": "NET-01",
+      "requirement": "A host firewall is active",
+      "cis_safeguard": "4.4",
+      "status": "FAIL",
+      "evidence": "firewall: active=none"
+    },
+    {
+      "id": "NET-02",
+      "requirement": "Telnet service is not running",
+      "cis_safeguard": "4.8",
+      "status": "PASS",
+      "evidence": "telnet active units: none"
+    },
+    {
+      "id": "LOG-01",
+      "requirement": "Audit/system logging service is active",
+      "cis_safeguard": "8.2",
+      "status": "PASS",
+      "evidence": "logging: active=['rsyslog']"
+    },
+    {
+      "id": "PAT-01",
+      "requirement": "Automatic security updates are enabled",
+      "cis_safeguard": "7.3",
+      "status": "FAIL",
+      "evidence": "auto-updates: enabled=none"
+    }
+  ]
+}

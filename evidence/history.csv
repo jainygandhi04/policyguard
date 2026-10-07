@@ -1,0 +1,4 @@
+timestamp,host,compliance_pct,passed,failed,skipped
+2026-10-07T14:32:42+00:00,kali,54.5,6,5,0
+2026-10-07T18:03:15+00:00,kali,90.9,10,1,0
+2026-10-07T18:06:40+00:00,kali,100.0,11,0,0
